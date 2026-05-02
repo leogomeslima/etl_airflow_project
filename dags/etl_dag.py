@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.utils.trigger_rule import TriggerRule
 
 # Garante que a pasta scripts está no PYTHONPATH
 sys.path.insert(0, '/opt/airflow/scripts')
@@ -30,6 +31,7 @@ with DAG(
     # ETL Vendas
     Esta DAG demonstra um processo completo de ETL utilizando Python, Pandas e PostgreSQL.
     Ela extrai dados de um CSV, aplica transformações e limpezas, e insere no banco de destino.
+    Possui uma rota de auditoria caso ocorra erro na transformação.
     """
 ) as dag:
 
@@ -59,6 +61,19 @@ with DAG(
         # Executa a carga no banco
         load(transformed_data)
 
+    def task_failure_analysis(**context):
+        """
+        Tarefa de auditoria executada apenas em caso de falha nas etapas anteriores.
+        """
+        ti = context['ti']
+        dag_run = context['dag_run']
+        
+        print("--- INICIANDO ANÁLISE DE FALHA ---")
+        print(f"Execução da DAG: {dag_run.run_id}")
+        print("A tarefa 'transform_data' falhou ou foi ignorada.")
+        print("Ação recomendada: Verificar a integridade dos arquivos na pasta data/ e os logs da task anterior.")
+        print("--- FIM DA ANÁLISE ---")
+
     # Definição das tasks
     t1 = PythonOperator(
         task_id='extract_data',
@@ -78,5 +93,13 @@ with DAG(
         provide_context=True
     )
 
-    # Definição das dependências (ordem de execução)
+    t_error = PythonOperator(
+        task_id='failure_analysis',
+        python_callable=task_failure_analysis,
+        provide_context=True,
+        trigger_rule=TriggerRule.ONE_FAILED
+    )
+
+    # Definição das dependências
     t1 >> t2 >> t3
+    t2 >> t_error
