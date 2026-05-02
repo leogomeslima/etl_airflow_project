@@ -1,0 +1,28 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Airflow
+logs/
+airflow.cfg
+airflow.db
+unittests.cfg
+webserver_config.py
+
+# Docker
+.dockerignore
+
+# OS generated files
+.DS_Store
+Thumbs.db
