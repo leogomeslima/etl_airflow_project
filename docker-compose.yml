@@ -1,0 +1,129 @@
+version: '3.8'
+
+x-airflow-common:
+  &airflow-common
+  image: apache/airflow:2.9.1
+  environment:
+    - AIRFLOW__CORE__EXECUTOR=${AIRFLOW__CORE__EXECUTOR:-LocalExecutor}
+    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN:-postgresql+psycopg2://airflow:airflow@postgres-source/airflow}
+    - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW__WEBSERVER__SECRET_KEY:-uma_chave_secreta_forte}
+    - AIRFLOW__CORE__LOAD_EXAMPLES=${AIRFLOW__CORE__LOAD_EXAMPLES:-False}
+    - POSTGRES_USER=${DEST_POSTGRES_USER:-etl_user}
+    - POSTGRES_PASSWORD=${DEST_POSTGRES_PASSWORD:-etl_pass}
+    - POSTGRES_DB=${DEST_POSTGRES_DB:-etl_destino}
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./scripts:/opt/airflow/scripts
+    - ./data:/opt/airflow/data
+    - ./requirements.txt:/opt/airflow/requirements.txt
+  depends_on:
+    postgres-source:
+      condition: service_healthy
+    postgres-dest:
+      condition: service_healthy
+  networks:
+    - etl-network
+
+services:
+  postgres-source:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=${SOURCE_POSTGRES_USER:-airflow}
+      - POSTGRES_PASSWORD=${SOURCE_POSTGRES_PASSWORD:-airflow}
+      - POSTGRES_DB=${SOURCE_POSTGRES_DB:-airflow}
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    volumes:
+      - postgres-source-db-volume:/var/lib/postgresql/data
+    networks:
+      - etl-network
+
+  postgres-dest:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=${DEST_POSTGRES_USER:-etl_user}
+      - POSTGRES_PASSWORD=${DEST_POSTGRES_PASSWORD:-etl_pass}
+      - POSTGRES_DB=${DEST_POSTGRES_DB:-etl_destino}
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "etl_user", "-d", "etl_destino"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d
+      - postgres-dest-db-volume:/var/lib/postgresql/data
+    networks:
+      - etl-network
+
+  airflow-init:
+    <<: *airflow-common
+    command: version
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=${AIRFLOW__CORE__EXECUTOR:-LocalExecutor}
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN:-postgresql+psycopg2://airflow:airflow@postgres-source/airflow}
+      - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW__WEBSERVER__SECRET_KEY:-uma_chave_secreta_forte}
+      - _AIRFLOW_DB_UPGRADE=${_AIRFLOW_DB_UPGRADE:-true}
+      - _AIRFLOW_WWW_USER_CREATE=${_AIRFLOW_WWW_USER_CREATE:-true}
+      - _AIRFLOW_WWW_USER_USERNAME=${_AIRFLOW_WWW_USER_USERNAME:-admin}
+      - _AIRFLOW_WWW_USER_PASSWORD=${_AIRFLOW_WWW_USER_PASSWORD:-admin}
+    entrypoint: 
+      - bash
+      - -c
+      - |
+        pip install -r /opt/airflow/requirements.txt
+        airflow db migrate
+        airflow users create \
+          --username ${_AIRFLOW_WWW_USER_USERNAME:-admin} \
+          --firstname admin \
+          --lastname admin \
+          --role Admin \
+          --email admin@example.com \
+          --password ${_AIRFLOW_WWW_USER_PASSWORD:-admin}
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: bash -c "pip install -r /opt/airflow/requirements.txt && airflow webserver"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    networks:
+      - etl-network
+    depends_on:
+      postgres-source:
+        condition: service_healthy
+      postgres-dest:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: bash -c "pip install -r /opt/airflow/requirements.txt && airflow scheduler"
+    restart: always
+    networks:
+      - etl-network
+    depends_on:
+      postgres-source:
+        condition: service_healthy
+      postgres-dest:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  postgres-source-db-volume:
+  postgres-dest-db-volume:
+
+networks:
+  etl-network:
