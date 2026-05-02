@@ -18,7 +18,7 @@ Componentes principais:
 O codigo-fonte segue o padrao de arquitetura desacoplada, separando a logica de orquestracao da logica de negocio:
 
 - dags/etl_dag.py: Define a DAG do Airflow. Nao contem logica de transformacao, apenas a declaracao de tarefas e suas dependencias.
-- scripts/extract.py: Isola a responsabilidade de leitura dos dados brutos (CSV).
+- scripts/extract.py: Isola a responsabilidade de leitura dos dados brutos (CSV). Agora suporta a leitura dinâmica de múltiplos arquivos simultaneamente.
 - scripts/transform.py: Centraliza todas as regras de negocio, higienizacao de dados e logica de tipagem.
 - scripts/load.py: Gerencia as conexoes de rede e insercoes no banco de dados.
 - docker-compose.yml: Define a rede interna (etl-network), volumes e os servicos.
@@ -26,7 +26,9 @@ O codigo-fonte segue o padrao de arquitetura desacoplada, separando a logica de 
 
 ## 3. Regras de Negocio e Transformacoes
 
-O pipeline executa uma limpeza rigorosa nos dados extraidos do arquivo de origem (teste.csv):
+O pipeline executa uma limpeza rigorosa nos dados extraidos de todos os arquivos de origem localizados na pasta de entrada:
+
+- Extracao Multi-Fonte: O sistema escaneia a pasta `data/` e processa todos os arquivos `.csv` encontrados de forma consolidada.
 
 - Limpeza de Nulos: Registros com valores essenciais ausentes (como preco unitario) sao descartados silenciosamente.
 - Tipagem e Formatacao: Datas sao validadas e padronizadas de forma rigida para o formato ISO (YYYY-MM-DD).
