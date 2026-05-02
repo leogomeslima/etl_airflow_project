@@ -63,12 +63,20 @@ Credenciais de acesso padrao:
 - Usuario: admin
 - Senha: admin
 
+### 5.3.1. Airflow
+
+![Airflow](./img/img_02.png)
+
 ### 5.4. Executando o Pipeline
 
 1. Na interface do Airflow, localize a DAG chamada "etl_vendas".
 2. Remova a DAG do estado de "Pause" (clicando no interruptor ao lado do nome).
 3. Acione a DAG manualmente clicando no botao "Trigger DAG" (simbolo de "Play").
 4. Acompanhe os logs em tempo real atraves da aba "Graph" ou "Grid".
+
+### 5.4.1. Airflow Pipeline Executado
+
+![Airflow](./img/img_01.png)
 
 ## 6. Auditoria e Validacao de Dados
 
