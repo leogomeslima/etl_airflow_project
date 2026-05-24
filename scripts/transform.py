@@ -14,6 +14,29 @@ def transform(data: list[dict]) -> list[dict]:
     """
     logger.info("Iniciando transformação de dados.")
     df = pd.DataFrame(data)
+
+    if df.empty:
+        logger.warning("Nenhum dado recebido para transformação.")
+        return []
+
+    colunas_obrigatorias = {'id', 'nome', 'categoria', 'quantidade', 'valor_unitario', 'data_venda', 'status'}
+    colunas_ausentes = colunas_obrigatorias - set(df.columns)
+    if colunas_ausentes:
+        raise ValueError(f"Colunas obrigatórias ausentes nos arquivos de entrada: {sorted(colunas_ausentes)}")
+
+    # Converte campos numéricos para suportar múltiplos CSVs com formatos inconsistentes.
+    linhas_antes = len(df)
+    df['id'] = pd.to_numeric(df['id'], errors='coerce')
+    df = df.dropna(subset=['id'])
+    df['id'] = df['id'].astype(int)
+    logger.info(f"Linhas removidas por id inválido: {linhas_antes - len(df)}")
+
+    linhas_antes = len(df)
+    df['quantidade'] = pd.to_numeric(df['quantidade'], errors='coerce')
+    df['valor_unitario'] = pd.to_numeric(df['valor_unitario'], errors='coerce')
+    df = df.dropna(subset=['quantidade', 'valor_unitario'])
+    df['quantidade'] = df['quantidade'].astype(int)
+    logger.info(f"Linhas removidas por quantidade ou valor_unitario inválido: {linhas_antes - len(df)}")
     
     # Remove registros onde 'valor_unitario' é nulo
     linhas_antes = len(df)
@@ -56,6 +79,12 @@ def transform(data: list[dict]) -> list[dict]:
     # Seleciona as colunas finais na ordem solicitada (incluindo 'id' para a chave primária)
     colunas_finais = ['id', 'produto', 'categoria', 'quantidade', 'valor_total_bruto', 'valor_total_com_imposto', 'data_venda', 'status']
     df = df[colunas_finais]
+
+    # Mantém apenas um registro por id para respeitar a chave primária do destino.
+    # keep='first' espelha o comportamento do load com ON CONFLICT DO NOTHING.
+    linhas_antes = len(df)
+    df = df.drop_duplicates(subset=['id'], keep='first')
+    logger.info(f"Linhas removidas por id duplicado: {linhas_antes - len(df)}")
     
     logger.info(f"Transformação concluída. Total de linhas após transformação: {len(df)}")
     logger.info(f"Amostra dos dados transformados:\n{df.head(5).to_string()}")

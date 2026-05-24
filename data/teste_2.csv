@@ -1,6 +1,0 @@
-id,nome,categoria,quantidade,valor_unitario,data_venda,status
-100,Monitor Gamer 144hz,Eletrônicos,1,1200.00,2026-02-01,concluido
-101,Cadeira Ergonomica,Móveis,1,950.00,2026-02-02,pendente
-102,Kit de Limpeza Profissional,Limpeza,5,45.00,2026-02-03,concluido
-103,Mesa de Jantar,Móveis,1,1500.00,2026-02-04,cancelado
-104,Webcam Full HD,Eletrônicos,2,350.00,2026-02-05,concluido

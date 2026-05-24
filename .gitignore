@@ -30,3 +30,7 @@ frontend/dist/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+
+data/
+etl_airflow_project\data\

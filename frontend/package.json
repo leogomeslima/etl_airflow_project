@@ -1,0 +1,22 @@
+{
+  "name": "etl-airflow-dashboard",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "chart.js": "^4.5.1",
+    "lucide-react": "^0.468.0",
+    "pg": "^8.21.0",
+    "react": "^19.0.0",
+    "react-chartjs-2": "^5.3.1",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5"
+  }
+}

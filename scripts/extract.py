@@ -8,9 +8,20 @@ if not logger.handlers:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
+EXPECTED_COLUMNS = ['id', 'nome', 'categoria', 'quantidade', 'valor_unitario', 'data_venda', 'status']
+
+
+def has_expected_header(file_path: str) -> bool:
+    with open(file_path, 'r', encoding='utf-8-sig') as file:
+        first_line = file.readline().strip().lower()
+
+    header = [column.strip() for column in first_line.split(',')]
+    return header == EXPECTED_COLUMNS
+
+
 def extract() -> list[dict]:
     """
-    Extrai os dados do CSV.
+    Extrai os dados de todos os arquivos CSV da pasta data.
     Retorna uma lista de dicionários para ser compatível com XCom no Airflow.
     """
     # Define o diretório de dados
@@ -20,8 +31,11 @@ def extract() -> list[dict]:
 
     logger.info(f"Escaneando diretório de dados: {data_dir}")
     
-    # Lista todos os arquivos CSV, ignorando o arquivo de saída transformado
-    all_files = [f for f in os.listdir(data_dir) if f.endswith('.csv') and f != 'vendas_transformadas.csv']
+    # Lista todos os arquivos CSV, independentemente do nome, ignorando apenas o arquivo de saída transformado.
+    all_files = sorted(
+        f for f in os.listdir(data_dir)
+        if f.lower().endswith('.csv') and f.lower() != 'vendas_transformadas.csv'
+    )
     
     if not all_files:
         logger.warning("Nenhum arquivo CSV encontrado para extração.")
@@ -32,7 +46,17 @@ def extract() -> list[dict]:
         file_path = os.path.join(data_dir, filename)
         logger.info(f"Lendo arquivo: {file_path}")
         try:
-            df_temp = pd.read_csv(file_path, dtype={'data_venda': str})
+            if has_expected_header(file_path):
+                df_temp = pd.read_csv(file_path, dtype={'data_venda': str})
+            else:
+                logger.warning(f"Arquivo sem cabeçalho esperado. Aplicando colunas padrão: {filename}")
+                df_temp = pd.read_csv(
+                    file_path,
+                    header=None,
+                    names=EXPECTED_COLUMNS,
+                    dtype={'data_venda': str}
+                )
+            df_temp['_arquivo_origem'] = filename
             dfs.append(df_temp)
         except Exception as e:
             logger.error(f"Erro ao ler o arquivo {filename}: {e}")
