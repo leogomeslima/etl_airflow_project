@@ -1,6 +1,6 @@
 # Frontend React - ETL Airflow Dashboard
 
-Dashboard em React para acompanhar o projeto `etl_vendas`, com visao operacional da DAG, etapas do pipeline, regras de qualidade e monitoramento em tempo real dos dados transformados.
+Dashboard em React para acompanhar o projeto `etl_vendas`, com visão operacional da DAG, etapas do pipeline, regras de qualidade e monitoramento em tempo real dos dados transformados.
 
 ## Executar em desenvolvimento
 
@@ -10,7 +10,7 @@ npm install
 npm run dev
 ```
 
-Depois acesse o endereco exibido pelo Vite, normalmente `http://localhost:5173`.
+Depois acesse o endereço exibido pelo Vite, normalmente `http://localhost:5173`.
 
 Enquanto o servidor Vite estiver ativo, a rota `/api/results` consulta primeiro o PostgreSQL destino (`vendas_transformadas`). Se o banco estiver indisponivel, a rota usa `../data/vendas_transformadas.csv` como fallback. A tela consulta essa rota a cada 5 segundos e atualiza os indicadores automaticamente.
 
